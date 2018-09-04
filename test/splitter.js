@@ -8,52 +8,57 @@ contract('Splitter', function(accounts) {
 
     var contract;
 
-    var execValidationFn = function(ethersToSend, ownersBalanceStrBeforeSplit, bobsBalanceStrBeforeSplit, carolsBalanceStrBeforeSplit, contractShareBefore, contractShareAfter, callback) {
 
-            var ownersBalanceStrAfterSplit = web3.eth.getBalance(ownerAddress).toString(10);
-            var bobsBalanceStrAfterSplit = web3.eth.getBalance(bobAddress).toString(10);
-            var carolsBalanceStrAfterSplit = web3.eth.getBalance(carolAddress).toString(10);
+    var validationFn = function(ethersToSend, receiver, receiverBalanceBeforeSplitInEthers, callback) {
+        var weiToSend = web3.toWei(ethersToSend, "ether");        
+        
+        var bobsShare;
+        var carolsShare;
 
-            console.log("Owner's balance after split: ", ownersBalanceStrAfterSplit);
-            console.log("Bob's balance after split: ", bobsBalanceStrAfterSplit);
-            console.log("Carols's balance after split: ", carolsBalanceStrAfterSplit);
+        return contract.getContractShare()
+        .then( function(_contractShare){
+            contractShareBeforeSplit = _contractShare;
+            return contract.split({from: accounts[0], value: weiToSend})
+            .then( function(_txn){
+    
+                return contract.getContractShare();        
+            })
+            .then( function(_contractShare){
+                contractShareAfterSplit = _contractShare;
 
-            //difference in Owner's balance after split
-            var ownersBalanceStrDifference = (web3.toBigNumber(ownersBalanceStrBeforeSplit) - web3.toBigNumber(ownersBalanceStrAfterSplit)).toString(10);
-            // console.log("difference in Owner's balance after split: ", 
-            //     ownersBalanceStrDifference    
-            // );
+                return contract.geSplittedAmount(bobAddress)
+                .then( function(_bobsShare){
+                    bobsShare = _bobsShare;
+                    return contract.geSplittedAmount(carolAddress)
+                    .then( function(_carolsShare){
+                        carolsShare = _carolsShare;
 
-            var ownersDifferenceInEthers = web3.fromWei(web3.toBigNumber(ownersBalanceStrDifference).toNumber(), "ether");
-            console.log("difference in owner's balance after split in ethers:",
-                ownersDifferenceInEthers
-            );
+                        console.log("bobs share: ", bobsShare.toNumber());
+                        console.log("carols share:", carolsShare.toNumber());
+                        console.log("contracts share: ", contractShareAfterSplit.toNumber());
 
-            //difference in Bob's balance after split
-            var bobsBalanceStrDifference = (web3.toBigNumber(bobsBalanceStrAfterSplit) - web3.toBigNumber(bobsBalanceStrBeforeSplit)).toString(10);
-            // console.log("difference in Bob's balance after split: ", 
-            //     bobsBalanceStrDifference
-            // );
-            var bobsDifferenceInEthers = web3.fromWei(web3.toBigNumber(bobsBalanceStrDifference).toNumber(), "ether");
-            console.log("difference in bob's balance after split in ethers:",
-                bobsDifferenceInEthers
-            );
+                        assert.equal(carolsShare.toNumber(), bobsShare.toNumber(), "Amount not splitted equally");
 
+                        var bobsShareInEthers = web3.fromWei(bobsShare.toNumber(), "ether");
+                        var carolsShareInEthers = web3.fromWei(carolsShare.toNumber(), "ether");
+                        var contractShareInEthers = web3.fromWei(contractShareAfterSplit.toNumber(),"ether");
 
-            //difference in Carols balance after split
-            var carolsBalanceStrDifference = (web3.toBigNumber(carolsBalanceStrAfterSplit) - web3.toBigNumber(carolsBalanceStrBeforeSplit)).toString(10);
-            // console.log("difference in Carols's balance after split: ", 
-            //     carolsBalanceStrDifference
-            // );
-            var carolsBalanceInEthers = web3.fromWei(web3.toBigNumber(carolsBalanceStrDifference).toNumber(), "ether");
-            console.log("difference in carols's balance after split in ethers:",
-                carolsBalanceInEthers
-            );
-            
-            // assert.equal(ethersToSend, (Number(bobsDifferenceInEthers) + Number(carolsBalanceInEthers) ), "Amount was not split correctly");
-            callback(ethersToSend, contractShareBefore, contractShareAfter, bobsDifferenceInEthers, carolsBalanceInEthers);
+                        console.log("bobs share in Ethers: ", bobsShareInEthers);
+                        console.log("carols share in Ethers: ", carolsShareInEthers);
+                        console.log("contract share in Ethers: ", contractShareInEthers);
+                        
 
-    };
+                        console.log("bobs share in Ethers: ", bobsShareInEthers);
+                        assert.equal(ethersToSend, (Number(bobsShareInEthers) + Number(carolsShareInEthers) + Number(contractShareInEthers) ), "Amount split is not equal to half of actual ethers sent" );
+
+                        callback(receiver, receiverBalanceBeforeSplitInEthers, bobsShareInEthers);
+                    })
+                })
+                
+            })    
+        })
+
+    }
 
     beforeEach( function(){
         return Splitter.new(bobAddress, carolAddress, {from: ownerAddress})
@@ -102,6 +107,9 @@ contract('Splitter', function(accounts) {
         console.log("Bob's balance before split: ", bobsBalanceStrBeforeSplit);
         console.log("Carols's balance before split: ", carolsBalanceStrBeforeSplit);
 
+        var bobsShare;
+        var carolsShare;
+
         return contract.getContractShare()
         .then( function(_contractShare){
             contractShareBeforeSplit = _contractShare;
@@ -112,79 +120,38 @@ contract('Splitter', function(accounts) {
             })
             .then( function(_contractShare){
                 contractShareAfterSplit = _contractShare;
-                
-                var callback = function(ethersToSend, contractShareBefore, contractShareAfter, bobsDifferenceInEthers, carolsBalanceInEthers) {
-                    assert.equal(ethersToSend, 
-                        ( Number(bobsDifferenceInEthers) + Number(carolsBalanceInEthers) ), 
-                        "Amount was not split correctly");    
-                };
+                return contract.geSplittedAmount(bobAddress)
+                .then( function(_bobsShare){
+                    bobsShare = _bobsShare;
+                    return contract.geSplittedAmount(carolAddress)
+                    .then( function(_carolsShare){
+                        carolsShare = _carolsShare;
 
-                execValidationFn(ethersToSend, ownersBalanceStrBeforeSplit, bobsBalanceStrBeforeSplit, carolsBalanceStrBeforeSplit, contractShareBeforeSplit, contractShareAfterSplit, callback);
+                        console.log("bobs share: ", bobsShare.toNumber());
+                        console.log("carols share:", carolsShare.toNumber());
+
+                        assert.equal(carolsShare.toNumber(), bobsShare.toNumber(), "Amount not splitted equally");
+
+                        var bobsShareInEthers = web3.fromWei(bobsShare.toNumber(), "ether");
+                        var carolsShareInEthers = web3.fromWei(carolsShare.toNumber(), "ether");
+
+                        console.log("bobs share in Ethers: ", bobsShareInEthers);
+                        console.log("carols share in Ethers: ", carolsShareInEthers);
+
+                        console.log("bobs share in Ethers: ", bobsShareInEthers);
+                        assert.equal(ethersToSend, (Number(bobsShareInEthers) + Number(carolsShareInEthers)), "Amount split is not equal to half of actual ethers sent" );
+    
+                    })
+                })
 
             })
     
-        })
-
-
-        // return contract.split({from: accounts[0], value: weiToSend})
-        // .then( function(_txn){
-        //     // console.log("received transaction receipt: ", _txn);
-        //     var gasUsedInEther = web3.fromWei(_txn.receipt.gasUsed, "ether");
-        //     // console.log("gas used in the transaction: ", _txn.receipt.gasUsed);
-        //     console.log("gas used in ethers: ", gasUsedInEther);
-
-        //     var ownersBalanceStrAfterSplit = web3.eth.getBalance(ownerAddress).toString(10);
-        //     var bobsBalanceStrAfterSplit = web3.eth.getBalance(bobAddress).toString(10);
-        //     var carolsBalanceStrAfterSplit = web3.eth.getBalance(carolAddress).toString(10);
-
-        //     console.log("Owner's balance after split: ", ownersBalanceStrAfterSplit);
-        //     console.log("Bob's balance after split: ", bobsBalanceStrAfterSplit);
-        //     console.log("Carols's balance after split: ", carolsBalanceStrAfterSplit);
-
-        //     //difference in Owner's balance after split
-        //     var ownersBalanceStrDifference = (web3.toBigNumber(ownersBalanceStrBeforeSplit) - web3.toBigNumber(ownersBalanceStrAfterSplit)).toString(10);
-        //     // console.log("difference in Owner's balance after split: ", 
-        //     //     ownersBalanceStrDifference    
-        //     // );
-
-        //     var ownersDifferenceInEthers = web3.fromWei(web3.toBigNumber(ownersBalanceStrDifference).toNumber(), "ether");
-        //     console.log("difference in owner's balance after split in ethers:",
-        //         ownersDifferenceInEthers
-        //     );
-
-        //     //difference in Bob's balance after split
-        //     var bobsBalanceStrDifference = (web3.toBigNumber(bobsBalanceStrAfterSplit) - web3.toBigNumber(bobsBalanceStrBeforeSplit)).toString(10);
-        //     // console.log("difference in Bob's balance after split: ", 
-        //     //     bobsBalanceStrDifference
-        //     // );
-        //     var bobsDifferenceInEthers = web3.fromWei(web3.toBigNumber(bobsBalanceStrDifference).toNumber(), "ether");
-        //     console.log("difference in bob's balance after split in ethers:",
-        //         bobsDifferenceInEthers
-        //     );
-
-
-        //     //difference in Carols balance after split
-        //     var carolsBalanceStrDifference = (web3.toBigNumber(carolsBalanceStrAfterSplit) - web3.toBigNumber(carolsBalanceStrBeforeSplit)).toString(10);
-        //     // console.log("difference in Carols's balance after split: ", 
-        //     //     carolsBalanceStrDifference
-        //     // );
-        //     var carolsBalanceInEthers = web3.fromWei(web3.toBigNumber(carolsBalanceStrDifference).toNumber(), "ether");
-        //     console.log("difference in carols's balance after split in ethers:",
-        //         carolsBalanceInEthers
-        //     );
-            
-        //     assert.equal(ethersToSend, (Number(bobsDifferenceInEthers) + Number(carolsBalanceInEthers) ), "Amount was not split correctly");
-                            
-        // })
-        // .catch( function(e){
-        //     console.log("error received", e);
-        // });
-
+        });
     });
 
     it("should split for non-whole ethers", function(){
 
-        var ethersToSend = 4.5;
+        var ethersToSend = 3.232323232323232323232323;
         var weiToSend = web3.toWei(ethersToSend, "ether");
         var contractShareBeforeSplit;
         var contractShareAfterSplit;
@@ -193,6 +160,9 @@ contract('Splitter', function(accounts) {
         var carolsBalanceStrBeforeSplit = web3.eth.getBalance(carolAddress).toString(10);
         
 
+        var bobsShare;
+        var carolsShare;
+
         return contract.getContractShare()
         .then( function(_contractShare){
             contractShareBeforeSplit = _contractShare;
@@ -203,19 +173,70 @@ contract('Splitter', function(accounts) {
             })
             .then( function(_contractShare){
                 contractShareAfterSplit = _contractShare;
-                
-                var callback = function(ethersToSend, contractShareBefore, contractShareAfter, bobsDifferenceInEthers, carolsBalanceInEthers) {
-                    assert.equal(ethersToSend, 
-                        ( Number(bobsDifferenceInEthers) + Number(carolsBalanceInEthers) + ( Number(contractShareAfter) - Number(contractShareBefore) ) ), 
-                        "Amount was not split correctly");    
-                };
 
-                execValidationFn(ethersToSend, ownersBalanceStrBeforeSplit, bobsBalanceStrBeforeSplit, carolsBalanceStrBeforeSplit, contractShareBeforeSplit, contractShareAfterSplit, callback);
+                return contract.geSplittedAmount(bobAddress)
+                .then( function(_bobsShare){
+                    bobsShare = _bobsShare;
+                    return contract.geSplittedAmount(carolAddress)
+                    .then( function(_carolsShare){
+                        carolsShare = _carolsShare;
+
+                        console.log("bobs share: ", bobsShare.toNumber());
+                        console.log("carols share:", carolsShare.toNumber());
+                        console.log("contracts share: ", contractShareAfterSplit.toNumber());
+
+                        assert.equal(carolsShare.toNumber(), bobsShare.toNumber(), "Amount not splitted equally");
+
+                        var bobsShareInEthers = web3.fromWei(bobsShare.toNumber(), "ether");
+                        var carolsShareInEthers = web3.fromWei(carolsShare.toNumber(), "ether");
+                        var contractShareInEthers = web3.fromWei(contractShareAfterSplit.toNumber(),"ether");
+
+                        console.log("bobs share in Ethers: ", bobsShareInEthers);
+                        console.log("carols share in Ethers: ", carolsShareInEthers);
+                        console.log("contract share in Ethers: ", contractShareInEthers);
+                        
+
+                        console.log("bobs share in Ethers: ", bobsShareInEthers);
+                        assert.equal(ethersToSend, (Number(bobsShareInEthers) + Number(carolsShareInEthers) + Number(contractShareInEthers) ), "Amount split is not equal to half of actual ethers sent" );
+    
+                    })
+                })
+                
+            })    
+        })
+                
+    });
+
+    it("bob should be able to withdraw his share", function(){
+        var ethersToSend = 4;
+        var receiver = bobAddress;
+        var receiverBalanceBeforeSplitInEthers = web3.fromWei(web3.eth.getBalance(bobAddress).toNumber(),"ether");
+
+        var callback = function(_receiver, receiverBalanceBeforeSplitInEthers, receiversSplittedAmount) {
+            console.log("inside callback...");
+            return contract.withdrawFunds({from: _receiver})
+            .then( function(_txn){
+                console.log("txn: ", _txn);
+                console.log("receivers balance in Ethers before split: ", receiverBalanceBeforeSplitInEthers);
+                var receiverBalanceStrAfterSplitInEthers = web3.fromWei(web3.eth.getBalance(_receiver).toNumber(),"ether");
+                console.log("receivers balance in Ethers after split: ", receiverBalanceStrAfterSplitInEthers);
+                console.log("receiver's splitted amount: ", receiversSplittedAmount);
+               console.log("gasused: ", _txn.receipt.cumulativeGasUsed);
+
+               var gasUsedInEthers = web3.fromWei(Number(_txn.receipt.cumulativeGasUsed),"ether");
+               console.log("gasUsed In ethers: ", gasUsedInEthers ); 
+
+               console.log("Effective amount received: ", 
+                (Number(receiverBalanceStrAfterSplitInEthers) - Number(receiverBalanceBeforeSplitInEthers)) 
+                );
+
+                //TODO: Effective  amount received will always be less than the exact splitted amount ( <2 ethers in this case)
+                //How do you assert this with assert.equal statement as we dont know the exact balance after the split, as some of the amount
+                //is spent on gas
 
             })
-    
-        })
-        
-        
+        }    
+        validationFn(ethersToSend, receiver, receiverBalanceBeforeSplitInEthers, callback);
     });
+
 });
