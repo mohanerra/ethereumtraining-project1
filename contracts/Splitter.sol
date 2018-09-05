@@ -1,36 +1,38 @@
 pragma solidity ^0.4.6;
 
 contract Splitter {
-    address public bob;
-    address public carol;
+    // address public bob;
+    // address public carol;
     address public owner;
     mapping(address => uint) public splittedAmountMap;
     uint public contractShare;
 
-    constructor (address _bob, address _carol) public {
-        require(_bob > 0);
-        require(_carol > 0);
+    constructor () public {
+        // require(_bob > 0);
+        // require(_carol > 0);
         owner = msg.sender;
-        bob = _bob;
-        carol = _carol;
+        // bob = _bob;
+        // carol = _carol;
 
     }
 
-    function split() public payable returns(bool success) {
-        if( msg.sender != owner) {
-            revert("Sender is not the owner");
-        }
+    function split(address receiver1, address receiver2) public payable returns(bool success) {
+        // if( msg.sender != owner) {
+        //     revert("Sender is not the owner");
+        // }
+        require(receiver1 > 0);
+        require(receiver2 > 0);
 
         uint splittedHalfAmount;
 
         if(msg.value % 2 == 0) {
             splittedHalfAmount = msg.value / 2;
-            splittedAmountMap[bob] += splittedHalfAmount;
-            splittedAmountMap[carol] += splittedHalfAmount;
+            splittedAmountMap[receiver1] += splittedHalfAmount;
+            splittedAmountMap[receiver2] += splittedHalfAmount;
         } else {
             splittedHalfAmount = (msg.value - 1) / 2;
-            splittedAmountMap[bob] += splittedHalfAmount;
-            splittedAmountMap[carol] += splittedHalfAmount;
+            splittedAmountMap[receiver1] += splittedHalfAmount;
+            splittedAmountMap[receiver2] += splittedHalfAmount;
             contractShare += 1;
         }
 
@@ -39,22 +41,11 @@ contract Splitter {
 
     function withdrawFunds() public payable returns(bool success) {
         uint amountToTransfer = 0;
-        if(msg.sender == bob) {
-            if(splittedAmountMap[bob] > 0) {
-                amountToTransfer = splittedAmountMap[bob];
-                splittedAmountMap[bob] = 0;
-                bob.transfer(amountToTransfer);
-            } else {
-                revert("Does not have funds to withdraw");
-            }
-        } else if(msg.sender == carol) {
-            if(splittedAmountMap[carol] > 0) {
-                amountToTransfer = splittedAmountMap[carol];
-                splittedAmountMap[carol] = 0;
-                carol.transfer(amountToTransfer);
-            } else {
-                revert("Does not have funds to withdraw");
-            }
+
+        if(splittedAmountMap[msg.sender] > 0) {
+            amountToTransfer = splittedAmountMap[msg.sender];
+            splittedAmountMap[msg.sender] = 0;
+            msg.sender.transfer(amountToTransfer);
         } else if(msg.sender == owner) {
             if(contractShare > 0) {
                 amountToTransfer = contractShare;
@@ -64,13 +55,10 @@ contract Splitter {
                 revert("Does not have funds to withdraw");
             }            
         } else {
-            revert("un-recognized Sender");
+            revert("Does not have funds to withdraw");
         }
-        return true;
-    }
 
-    function getContractShare() public view returns(uint cshare) {
-        return contractShare;
+        return true;
     }
 
     function geSplittedAmount(address _address) public view returns(uint amount) {

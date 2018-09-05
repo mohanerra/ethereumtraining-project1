@@ -15,13 +15,13 @@ contract('Splitter', function(accounts) {
         var bobsShare;
         var carolsShare;
 
-        return contract.getContractShare()
+        return contract.contractShare()
         .then( function(_contractShare){
             contractShareBeforeSplit = _contractShare;
-            return contract.split({from: accounts[0], value: weiToSend})
+            return contract.split(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
             .then( function(_txn){
     
-                return contract.getContractShare();        
+                return contract.contractShare();        
             })
             .then( function(_contractShare){
                 contractShareAfterSplit = _contractShare;
@@ -61,7 +61,7 @@ contract('Splitter', function(accounts) {
     }
 
     beforeEach( function(){
-        return Splitter.new(bobAddress, carolAddress, {from: ownerAddress})
+        return Splitter.new({from: ownerAddress})
         .then( function(instance){
             contract = instance;
         });
@@ -76,15 +76,15 @@ contract('Splitter', function(accounts) {
             assert.equal(_owner, ownerAddress, "Owner's address is not initialized correctly");
         });
 
-        contract.bob({from: ownerAddress})
-        .then( function(_bob){
-            assert.equal(_bob, bobAddress, "Bob's address is not initialized correctly");
-        });
+        // contract.bob({from: ownerAddress})
+        // .then( function(_bob){
+        //     assert.equal(_bob, bobAddress, "Bob's address is not initialized correctly");
+        // });
 
-        contract.carol({from: ownerAddress})
-        .then( function(_carol){
-            assert.equal(_carol, carolAddress, "Carol's address is not initialized correctly");
-        });
+        // contract.carol({from: ownerAddress})
+        // .then( function(_carol){
+        //     assert.equal(_carol, carolAddress, "Carol's address is not initialized correctly");
+        // });
 
     });
 
@@ -110,13 +110,13 @@ contract('Splitter', function(accounts) {
         var bobsShare;
         var carolsShare;
 
-        return contract.getContractShare()
+        return contract.contractShare()
         .then( function(_contractShare){
             contractShareBeforeSplit = _contractShare;
-            return contract.split({from: accounts[0], value: weiToSend})
+            return contract.split(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
             .then( function(_txn){
     
-                return contract.getContractShare();        
+                return contract.contractShare();        
             })
             .then( function(_contractShare){
                 contractShareAfterSplit = _contractShare;
@@ -163,13 +163,13 @@ contract('Splitter', function(accounts) {
         var bobsShare;
         var carolsShare;
 
-        return contract.getContractShare()
+        return contract.contractShare()
         .then( function(_contractShare){
             contractShareBeforeSplit = _contractShare;
-            return contract.split({from: accounts[0], value: weiToSend})
+            return contract.split(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
             .then( function(_txn){
     
-                return contract.getContractShare();        
+                return contract.contractShare();        
             })
             .then( function(_contractShare){
                 contractShareAfterSplit = _contractShare;
