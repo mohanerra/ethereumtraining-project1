@@ -1,68 +1,42 @@
 pragma solidity ^0.4.6;
 
 contract Splitter {
-    // address public bob;
-    // address public carol;
+
     address public owner;
-    mapping(address => uint) public splittedAmountMap;
-    uint public contractShare;
+    mapping(address => uint) public balances;
 
     constructor () public {
-        // require(_bob > 0);
-        // require(_carol > 0);
         owner = msg.sender;
-        // bob = _bob;
-        // carol = _carol;
 
     }
 
     function split(address receiver1, address receiver2) public payable returns(bool success) {
-        // if( msg.sender != owner) {
-        //     revert("Sender is not the owner");
-        // }
-        require(receiver1 > 0);
-        require(receiver2 > 0);
+        require(receiver1 > 0, "invalid receiver1 address");
+        require(receiver2 > 0, "invalid receiver2 address");
 
-        uint splittedHalfAmount;
+        uint splittedHalfAmount = msg.value/2;
+        balances[receiver1] = splittedHalfAmount;
+        balances[receiver2] = splittedHalfAmount;
 
-        if(msg.value % 2 == 0) {
-            splittedHalfAmount = msg.value / 2;
-            splittedAmountMap[receiver1] += splittedHalfAmount;
-            splittedAmountMap[receiver2] += splittedHalfAmount;
-        } else {
-            splittedHalfAmount = (msg.value - 1) / 2;
-            splittedAmountMap[receiver1] += splittedHalfAmount;
-            splittedAmountMap[receiver2] += splittedHalfAmount;
-            contractShare += 1;
-        }
+        if(msg.value % 2 > 0) {
+            balances[owner] += 1;
+            //transfer the balance to the owner right away
+            //balances[owner] is still kept for accounting purposes only
+            owner.transfer(1);
+        } 
 
         return true;
     }
 
-    function withdrawFunds() public payable returns(bool success) {
-        uint amountToTransfer = 0;
-
-        if(splittedAmountMap[msg.sender] > 0) {
-            amountToTransfer = splittedAmountMap[msg.sender];
-            splittedAmountMap[msg.sender] = 0;
-            msg.sender.transfer(amountToTransfer);
-        } else if(msg.sender == owner) {
-            if(contractShare > 0) {
-                amountToTransfer = contractShare;
-                contractShare = 0;
-                owner.transfer(amountToTransfer);
-            } else {
-                revert("Does not have funds to withdraw");
-            }            
-        } else {
-            revert("Does not have funds to withdraw");
-        }
+    function withdrawFunds() public returns(bool success) {
+        require(balances[msg.sender] > 0, "no funds to withdraw");
+        //since owner's remainder balance is sent right away during split function, there is nothing to withdraw
+        require(msg.sender != owner, "there is nothing to withdraw for the owner");
+        uint amountToTransfer = balances[msg.sender];
+        balances[msg.sender] = 0;
+        msg.sender.transfer(amountToTransfer);
 
         return true;
     }
 
-    function geSplittedAmount(address _address) public view returns(uint amount) {
-        require(_address > 0, "must provide a valid address to lookup");
-        return splittedAmountMap[_address];
-    }
 }
