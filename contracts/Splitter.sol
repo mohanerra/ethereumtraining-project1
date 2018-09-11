@@ -19,10 +19,8 @@ contract Splitter {
         balances[receiver2] = splittedHalfAmount;
 
         if(msg.value % 2 > 0) {
-            balances[owner] += 1;
-            //transfer the balance to the owner right away
-            //balances[owner] is still kept for accounting purposes only
-            owner.transfer(1);
+            //send the change back to the sender
+            msg.sender.transfer(1);
         } 
 
         return true;
@@ -30,8 +28,6 @@ contract Splitter {
 
     function withdrawFunds() public returns(bool success) {
         require(balances[msg.sender] > 0, "no funds to withdraw");
-        //since owner's remainder balance is sent right away during split function, there is nothing to withdraw
-        require(msg.sender != owner, "there is nothing to withdraw for the owner");
         uint amountToTransfer = balances[msg.sender];
         balances[msg.sender] = 0;
         msg.sender.transfer(amountToTransfer);
