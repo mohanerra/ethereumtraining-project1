@@ -18,7 +18,7 @@ contract('Splitter', function(accounts) {
         return contract.contractShare()
         .then( function(_contractShare){
             contractShareBeforeSplit = _contractShare;
-            return contract.split(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
+            return contract.splitFunds(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
             .then( function(_txn){
     
                 return contract.contractShare();        
@@ -93,7 +93,7 @@ contract('Splitter', function(accounts) {
         var ethersToSend = 4;
         var weiToSend = web3.toWei(ethersToSend, "ether");
 
-        return contract.split(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
+        return contract.splitFunds(bobAddress, carolAddress, {from: accounts[0], value: weiToSend})
         .then (function(_txn){
             console.log("transaction: ", _txn);
             return contract.balances(bobAddress)
